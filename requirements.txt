@@ -1,0 +1,9 @@
+   # Servidor ASGI para rodar o FastAP# Conexão com banco de dados
+mysql-connector-python==8.0.28  # Conector MySQL
+
+# Outras bibliotecas úteis
+pandas==1.5.3            # Para manipulação e exportação de dados (como para Excel)
+openpyxl==3.0.10         # Necessário para leitura e escrita de arquivos Excel
+
+# Outras dependências de apoio
+python-dotenv==0.21.0    # Para carregar variáveis de ambiente de arquivos .env
