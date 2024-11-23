@@ -2,30 +2,31 @@ from database import get_connection, close_connection
 
 # CREATE
 def realizar_aluguel(id_cliente, id_carro, data_inicio, data_fim, valor_total):
-    """Realiza um aluguel."""
     try:
-        connection = get_connection()
-        cursor = connection.cursor()
+        # Conexão com o banco de dados
+        conexao = get_connection()
+        cursor = conexao.cursor()
 
+        # Query para inserir um aluguel
         query = """
         INSERT INTO alugueis (id_cliente, id_carro, data_inicio, data_fim, valor_total)
-        VALUES (:id_cliente, :id_carro, :data_inicio, :data_fim, :valor_total)
+        VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(query, {
-            'id_cliente': id_cliente, 'id_carro': id_carro,
-            'data_inicio': data_inicio, 'data_fim': data_fim, 'valor_total': valor_total
-        })
-
-        # Atualizar status do carro
-        query_update = "UPDATE carros SET status = 'Indisponível' WHERE id_carro = :id_carro"
-        cursor.execute(query_update, {'id_carro': id_carro})
-
-        connection.commit()
-        print("Aluguel realizado com sucesso!")
-    except Exception as e:
-        print("Erro ao realizar aluguel:", e)
+        
+        # Executar o comando SQL com os valores
+        cursor.execute(query, (id_cliente, id_carro, data_inicio, data_fim, valor_total))
+        
+        # Commit para salvar as alterações no banco
+        conexao.commit()
+        
+        print("Aluguel cadastrado com sucesso!")
+    
+    except Exception as erro:
+        print(f"Erro ao realizar o aluguel: {erro}")
     finally:
-        close_connection(connection)
+        # Fechar a conexão com o banco
+        cursor.close()
+        conexao.close()
 
 # READ
 def listar_alugueis():
@@ -44,6 +45,8 @@ def listar_alugueis():
         alugueis = cursor.fetchall()
         for aluguel in alugueis:
             print(aluguel)
+        else:
+            print("Nenhum aluguel encontrado.")
     except Exception as e:
         print("Erro ao listar aluguéis:", e)
     finally:
@@ -52,57 +55,67 @@ def listar_alugueis():
 from database import get_connection, close_connection
 
 # UPDATE
-def atualizar_aluguel(id_aluguel, data_inicio=None, data_fim=None, valor_total=None):
-    """Atualiza informações de um aluguel."""
+def atualizar_aluguel(id_aluguel, id_cliente=None, id_carro=None, data_inicio=None, data_fim=None, valor_total=None):
     try:
-        connection = get_connection()
-        cursor = connection.cursor()
+        # Conexão com o banco de dados
+        conexao = get_connection()
+        cursor = conexao.cursor()
 
+        # Verificar se o id_cliente existe na tabela clientes
+        if id_cliente:
+            cursor.execute("SELECT COUNT(*) FROM clientes WHERE id_cliente = %s", (id_cliente,))
+            if cursor.fetchone()[0] == 0:
+                print(f"Erro: O id_cliente {id_cliente} não existe na tabela clientes.")
+                return
+
+        # Construção da query de atualização
         query = """
         UPDATE alugueis
-        SET data_inicio = COALESCE(:data_inicio, data_inicio),
-            data_fim = COALESCE(:data_fim, data_fim),
-            valor_total = COALESCE(:valor_total, valor_total)
-        WHERE id_aluguel = :id_aluguel
+        SET
+            id_cliente = COALESCE(%s, id_cliente),
+            id_carro = COALESCE(%s, id_carro),
+            data_inicio = COALESCE(%s, data_inicio),
+            data_fim = COALESCE(%s, data_fim),
+            valor_total = COALESCE(%s, valor_total)
+        WHERE id_aluguel = %s
         """
-        cursor.execute(query, {
-            'data_inicio': data_inicio, 'data_fim': data_fim, 'valor_total': valor_total, 'id_aluguel': id_aluguel
-        })
-        connection.commit()
+
+        # Passando os parâmetros para a execução da query
+        parametros = (id_cliente, id_carro, data_inicio, data_fim, valor_total, id_aluguel)
+        cursor.execute(query, parametros)
+
+        # Commit para aplicar as alterações no banco de dados
+        conexao.commit()
+
         print("Aluguel atualizado com sucesso!")
-    except Exception as e:
-        print("Erro ao atualizar aluguel:", e)
+    
+    except Exception as erro:
+        print(f"Erro ao atualizar aluguel: {erro}")
     finally:
-        close_connection(connection)
+        # Fechar o cursor e a conexão
+        cursor.close()
+        conexao.close()
+
 
 # DELETE
 def deletar_aluguel(id_aluguel):
-    """Remove um aluguel do sistema e atualiza o status do carro para 'Disponível'."""
     try:
-        connection = get_connection()
-        cursor = connection.cursor()
+        # Conectando ao banco de dados
+        conexao = get_connection()
+        cursor = conexao.cursor()
 
-        # Obter ID do carro associado ao aluguel
-        query_get_carro = "SELECT id_carro FROM alugueis WHERE id_aluguel = :id_aluguel"
-        cursor.execute(query_get_carro, {'id_aluguel': id_aluguel})
-        result = cursor.fetchone()
-        if not result:
-            print("Aluguel não encontrado.")
-            return
+        # Query para remover o aluguel
+        query = "DELETE FROM alugueis WHERE id_aluguel = %(id_aluguel)s"
+        parametros = {"id_aluguel": id_aluguel}
 
-        id_carro = result[0]
+        # Executando a consulta com os parâmetros
+        cursor.execute(query, parametros)
+        conexao.commit()
+        print(f"Aluguel com ID {id_aluguel} removido com sucesso!")
 
-        # Remover aluguel
-        query_delete = "DELETE FROM alugueis WHERE id_aluguel = :id_aluguel"
-        cursor.execute(query_delete, {'id_aluguel': id_aluguel})
+    except Exception as erro:
+        print(f"Erro ao remover aluguel: {erro}")
 
-        # Atualizar status do carro para 'Disponível'
-        query_update_carro = "UPDATE carros SET status = 'Disponível' WHERE id_carro = :id_carro"
-        cursor.execute(query_update_carro, {'id_carro': id_carro})
-
-        connection.commit()
-        print("Aluguel removido com sucesso!")
-    except Exception as e:
-        print("Erro ao remover aluguel:", e)
     finally:
-        close_connection(connection)
+        cursor.close()
+        conexao.close()

@@ -2,19 +2,20 @@ import json
 import pandas as pd
 
 def export_to_json(data, filename):
-    """Exporta dados para arquivo JSON."""
     try:
-        with open(filename, 'w') as file:
-            json.dump(data, file, indent=4)
-        print(f"Dados exportados para {filename} com sucesso!")
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=4)
+        print(f"Dados exportados com sucesso para {filename}")
     except Exception as e:
-        print("Erro ao exportar para JSON:", e)
+        print(f"Erro ao exportar para JSON: {e}")
 
 def export_to_excel(data, filename):
-    """Exporta dados para arquivo Excel."""
     try:
+        # Convertendo os dados para um DataFrame
         df = pd.DataFrame(data)
-        df.to_excel(filename, index=False)
-        print(f"Dados exportados para {filename} com sucesso!")
+        
+        # Salvando o DataFrame em um arquivo Excel
+        df.to_excel(filename, index=False, engine='openpyxl')
+        print(f"Dados exportados com sucesso para {filename}")
     except Exception as e:
-        print("Erro ao exportar para Excel:", e)
+        print(f"Erro ao exportar para Excel: {e}")

@@ -38,41 +38,61 @@ def listar_clientes():
 
 # UPDATE
 def atualizar_cliente(id_cliente, nome=None, cpf=None, telefone=None, email=None):
-    """Atualiza informações de um cliente."""
     try:
-        connection = get_connection()
-        cursor = connection.cursor()
+        conexao = get_connection()
+        cursor = conexao.cursor()
 
+        # SQL corrigido com COALESCE e usando o nome da coluna "id_cliente" (ajuste conforme necessário)
         query = """
         UPDATE clientes
-        SET nome = COALESCE(:nome, nome),
-            cpf = COALESCE(:cpf, cpf),
-            telefone = COALESCE(:telefone, telefone),
-            email = COALESCE(:email, email)
-        WHERE id_cliente = :id_cliente
+        SET 
+            nome = COALESCE(%s, nome),
+            cpf = COALESCE(%s, cpf),
+            telefone = COALESCE(%s, telefone),
+            email = COALESCE(%s, email)
+        WHERE id_cliente = %s
         """
-        cursor.execute(query, {
-            'nome': nome, 'cpf': cpf, 'telefone': telefone, 'email': email, 'id_cliente': id_cliente
-        })
-        connection.commit()
-        print("Cliente atualizado com sucesso!")
-    except Exception as e:
-        print("Erro ao atualizar cliente:", e)
+
+        # Montando os parâmetros como uma tupla
+        parametros = (nome, cpf, telefone, email, id_cliente)
+
+        cursor.execute(query, parametros)
+        conexao.commit()
+
+        if cursor.rowcount > 0:
+            print(f"Cliente com ID {id_cliente} atualizado com sucesso!")
+        else:
+            print(f"Nenhum cliente encontrado com ID {id_cliente}. Nenhuma alteração realizada.")
+
+    except Exception as erro:
+        print(f"Erro ao atualizar cliente: {erro}")
     finally:
-        close_connection(connection)
+        if conexao.is_connected():
+            cursor.close()
+            conexao.close()
+            print("Conexão com o MySQL foi encerrada.")
+
+
+
 
 # DELETE
 def deletar_cliente(id_cliente):
-    """Remove um cliente do sistema."""
     try:
-        connection = get_connection()
-        cursor = connection.cursor()
+        # Conectando ao banco de dados
+        conexao = get_connection()
+        cursor = conexao.cursor()
 
-        query = "DELETE FROM clientes WHERE id_cliente = :id_cliente"
-        cursor.execute(query, {'id_cliente': id_cliente})
-        connection.commit()
-        print("Cliente removido com sucesso!")
-    except Exception as e:
-        print("Erro ao deletar cliente:", e)
+        # Query para deletar o cliente
+        query = "DELETE FROM clientes WHERE id_cliente = %(id_cliente)s"
+        parametros = {"id_cliente": id_cliente}
+
+        cursor.execute(query, parametros)
+        conexao.commit()
+        print(f"Cliente com ID {id_cliente} deletado com sucesso!")
+
+    except Exception as erro:
+        print(f"Erro ao deletar cliente: {erro}")
+
     finally:
-        close_connection(connection)
+        cursor.close()
+        conexao.close()
